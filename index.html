@@ -1374,23 +1374,26 @@ function updateCharts() {
     
     buildCustomLegend('legendEPDO', epdoLabels, epdoData, epdoColors, totalEPDO);
     
-    // EPDO by Year Chart
-    const epdoByYear = {};
-    rows.forEach(r => {
-        const year = r[COL.YEAR];
-        if (!epdoByYear[year]) epdoByYear[year] = { K: 0, A: 0, B: 0, C: 0, O: 0 };
-        const s = (r[COL.SEVERITY] || '').charAt(0);
-        if (epdoByYear[year][s] !== undefined) epdoByYear[year][s]++;
-    });
-    
-    const epdoYearLabels = years;
+    // EPDO by Year Chart - calculate from aggregates
     const epdoYearData = years.map(y => {
-        const d = epdoByYear[y] || { K: 0, A: 0, B: 0, C: 0, O: 0 };
-        return d.K * 462 + d.A * 62 + d.B * 12 + d.C * 5 + d.O;
+        const yearData = agg.byYear[y] || 0;
+        // We need severity breakdown by year, use sample rows
+        let yK = 0, yA = 0, yB = 0, yC = 0, yO = 0;
+        crashState.sampleRows.forEach(r => {
+            if (String(r[COL.YEAR]) === String(y)) {
+                const s = (r[COL.SEVERITY] || '').charAt(0);
+                if (s === 'K') yK++;
+                else if (s === 'A') yA++;
+                else if (s === 'B') yB++;
+                else if (s === 'C') yC++;
+                else if (s === 'O') yO++;
+            }
+        });
+        return yK * 462 + yA * 62 + yB * 12 + yC * 5 + yO;
     });
     
     createChart('chartEPDOYear', 'bar', {
-        labels: epdoYearLabels,
+        labels: years,
         datasets: [{
             label: 'EPDO Score',
             data: epdoYearData,
